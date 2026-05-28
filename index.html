@@ -357,6 +357,7 @@
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
     const titleScreen = document.getElementById('titleScreen');
     const scoreScreen = document.getElementById('scoreScreen');
     const hud = document.getElementById('hud');
@@ -800,159 +801,148 @@
       }
     }
 
+    function px(value) {
+      return Math.round(value / 4) * 4;
+    }
+
+    function pixelRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(px(x), px(y), px(w), px(h));
+    }
+
+    function drawPixelCloud(x, y, scale = 1) {
+      const s = 8 * scale;
+      pixelRect(x, y + s, s * 6, s * 2, 'rgba(255, 255, 226, 0.82)');
+      pixelRect(x + s, y, s * 4, s, 'rgba(255, 255, 226, 0.82)');
+      pixelRect(x + s * 5, y + s * 2, s * 2, s, 'rgba(255, 255, 226, 0.72)');
+      pixelRect(x - s, y + s * 2, s, s, 'rgba(255, 255, 226, 0.62)');
+    }
+
+    function drawPixelBrickBuilding(x, y, w, h, body, trim, windowColor, signText = '') {
+      pixelRect(x, y, w, h, body);
+      pixelRect(x, y, w, 12, trim);
+      pixelRect(x, y + h - 28, w, 28, '#152335');
+      pixelRect(x + 8, y + h - 22, w - 16, 6, trim);
+
+      for (let by = y + 22; by < y + h - 36; by += 18) {
+        for (let bx = x + ((by / 18) % 2 ? 8 : 0); bx < x + w; bx += 36) {
+          pixelRect(bx, by, 24, 4, 'rgba(255,255,255,0.13)');
+        }
+      }
+
+      for (let wy = y + 34; wy < y + h - 46; wy += 38) {
+        for (let wx = x + 18; wx < x + w - 18; wx += 34) {
+          pixelRect(wx, wy, 16, 20, '#0c263e');
+          pixelRect(wx + 3, wy + 3, 10, 7, windowColor);
+          pixelRect(wx + 3, wy + 13, 10, 4, 'rgba(255,255,255,0.2)');
+        }
+      }
+
+      if (signText) {
+        pixelRect(x + 10, y + 14, w - 20, 26, '#21133a');
+        pixelRect(x + 14, y + 18, w - 28, 18, trim);
+        ctx.fillStyle = '#fff4a8';
+        ctx.font = '900 13px monospace';
+        ctx.fillText(signText, x + 20, y + 33);
+      }
+    }
+
+    function drawPixelMusicNote(x, y, color) {
+      pixelRect(x, y, 8, 32, color);
+      pixelRect(x + 8, y, 16, 8, color);
+      pixelRect(x - 12, y + 24, 20, 16, color);
+    }
+
+    function drawPixelPalm(x, y, scale = 1) {
+      const s = 6 * scale;
+      pixelRect(x, y, s * 3, s * 18, '#7a4224');
+      pixelRect(x - s, y + s * 5, s * 5, s * 2, '#9a6130');
+      pixelRect(x - s * 8, y - s * 2, s * 9, s * 3, '#6a9d34');
+      pixelRect(x + s * 2, y - s * 3, s * 9, s * 3, '#7bbf45');
+      pixelRect(x - s * 5, y - s * 6, s * 8, s * 3, '#8bd252');
+      pixelRect(x + s, y - s * 7, s * 7, s * 3, '#5e8f2f');
+    }
+
+    function drawPixelOcean(start, width) {
+      pixelRect(start, groundY - 42, width, 88, '#70e6de');
+      pixelRect(start, groundY + 18, width, 76, '#1f9ec0');
+      for (let x = start; x < start + width; x += 72) {
+        pixelRect(x, groundY - 12 + ((x / 72) % 2) * 8, 46, 8, '#effff7');
+        pixelRect(x + 18, groundY + 28, 70, 6, '#b9fff0');
+        pixelRect(x + 8, groundY + 58, 34, 6, '#0f6f8d');
+      }
+    }
+
     function drawNashvilleScene(start, width) {
-      const base = groundY - 172;
-      for (let i = 0; i < 7; i++) {
-        const x = start + 70 + i * 210;
-        const h = 126 + (i % 3) * 30;
-        ctx.fillStyle = i % 2 ? '#382251' : '#2b1c42';
-        ctx.fillRect(x, base - h + 128, 160, h);
-        ctx.fillStyle = i % 2 ? '#ffca3a' : '#ff5a7a';
-        drawRoundedRect(x + 18, base - h + 145, 124, 28, 5);
-        ctx.fillStyle = '#07111f';
-        ctx.font = '800 15px Arial';
-        const labels = ['HONKY TONK', 'LIVE MUSIC', 'BROADWAY', 'GUITARS', 'NEON BAR', 'STAGE', 'VINYL'];
-        ctx.fillText(labels[i], x + 26, base - h + 165);
-        drawWindowGrid(x + 24, base - h + 188, 112, 56, 2, 4, 'rgba(255, 236, 160, 0.72)');
+      pixelRect(start, groundY - 168, width, 36, '#6d4a9f');
+      const signs = ['BROADWAY', 'LIVE', 'VINYL', 'STAGE', 'NEON', 'RIFFS', 'MUSIC'];
+      const bodies = ['#70354b', '#384c7c', '#9a4a32', '#3f5e83'];
+      for (let i = 0; i < 8; i++) {
+        const x = start + 44 + i * 190;
+        const h = 124 + (i % 4) * 24;
+        drawPixelBrickBuilding(x, groundY - h - 42, 148, h, bodies[i % bodies.length], i % 2 ? '#ffca3a' : '#ff5a9f', '#72f1ff', signs[i % signs.length]);
       }
 
-      ctx.strokeStyle = '#ffca3a';
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.arc(start + 520, groundY - 250, 42, -0.9, Math.PI * 1.22);
-      ctx.stroke();
-      ctx.fillStyle = '#ff5a7a';
-      ctx.beginPath();
-      ctx.arc(start + 575, groundY - 202, 18, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f6fbff';
-      ctx.font = '900 28px Arial';
-      ctx.fillText('MUSIC CITY', start + 690, groundY - 270);
-
-      ctx.fillStyle = 'rgba(255, 202, 58, 0.22)';
-      for (let x = start; x < start + width; x += 96) {
-        ctx.beginPath();
-        ctx.moveTo(x + 12, groundY - 176);
-        ctx.lineTo(x + 52, groundY - 220);
-        ctx.lineTo(x + 92, groundY - 176);
-        ctx.closePath();
-        ctx.fill();
-      }
+      drawPixelMusicNote(start + 520, groundY - 330, '#ffca3a');
+      drawPixelMusicNote(start + 690, groundY - 292, '#48e0ff');
+      drawPixelMusicNote(start + 930, groundY - 340, '#ff5a9f');
+      pixelRect(start + 250, groundY - 300, 32, 156, '#311f3d');
+      pixelRect(start + 238, groundY - 314, 56, 36, '#ff8c32');
+      pixelRect(start + 254, groundY - 278, 24, 96, '#f7f0d6');
+      pixelRect(start + 248, groundY - 248, 36, 12, '#201326');
     }
 
     function drawHuntsvilleScene(start, width) {
-      ctx.fillStyle = '#17365c';
-      for (let i = 0; i < 6; i++) {
-        const x = start + 60 + i * 250;
-        const h = 118 + (i % 2) * 42;
-        drawRoundedRect(x, groundY - h - 38, 164, h, 7);
-        drawWindowGrid(x + 18, groundY - h - 12, 128, h - 40, 3, 4, 'rgba(190, 244, 255, 0.65)');
-        ctx.fillStyle = '#17365c';
+      const bodies = ['#6c735f', '#456a78', '#85573f', '#5c4f7d'];
+      for (let i = 0; i < 7; i++) {
+        const x = start + 48 + i * 210;
+        const h = 118 + (i % 3) * 34;
+        drawPixelBrickBuilding(x, groundY - h - 42, 160, h, bodies[i % bodies.length], '#b5f44a', '#d2fbff', i % 2 ? 'LAB' : 'BRICK');
       }
-
       const rocketX = start + 520;
-      ctx.fillStyle = '#eff7ff';
-      ctx.beginPath();
-      ctx.moveTo(rocketX + 36, groundY - 370);
-      ctx.lineTo(rocketX + 68, groundY - 310);
-      ctx.lineTo(rocketX + 68, groundY - 128);
-      ctx.lineTo(rocketX + 4, groundY - 128);
-      ctx.lineTo(rocketX + 4, groundY - 310);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#d9384f';
-      ctx.fillRect(rocketX + 4, groundY - 252, 64, 24);
-      ctx.fillStyle = '#1b5f96';
-      ctx.beginPath();
-      ctx.arc(rocketX + 36, groundY - 290, 13, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffca3a';
-      ctx.beginPath();
-      ctx.moveTo(rocketX + 16, groundY - 128);
-      ctx.lineTo(rocketX + 36, groundY - 82);
-      ctx.lineTo(rocketX + 56, groundY - 128);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = 'rgba(198, 244, 255, 0.55)';
-      ctx.lineWidth = 4;
-      for (let x = start + 90; x < start + width; x += 210) {
-        ctx.beginPath();
-        ctx.arc(x, groundY - 230, 64, 0.2, Math.PI * 1.65);
-        ctx.stroke();
-      }
+      pixelRect(rocketX + 24, groundY - 372, 32, 56, '#eff7ff');
+      pixelRect(rocketX + 16, groundY - 316, 48, 168, '#eff7ff');
+      pixelRect(rocketX + 16, groundY - 248, 48, 24, '#d9384f');
+      pixelRect(rocketX + 28, groundY - 292, 24, 24, '#1b5f96');
+      pixelRect(rocketX, groundY - 172, 16, 44, '#d9384f');
+      pixelRect(rocketX + 64, groundY - 172, 16, 44, '#d9384f');
+      pixelRect(rocketX + 28, groundY - 128, 24, 44, '#ffca3a');
+      for (let x = start + 90; x < start + width; x += 210) pixelRect(x, groundY - 238, 96, 8, 'rgba(198, 244, 255, 0.42)');
     }
 
     function drawBirminghamScene(start, width) {
-      ctx.fillStyle = '#281d1c';
-      for (let i = 0; i < 5; i++) {
-        const x = start + 70 + i * 300;
-        ctx.fillRect(x, groundY - 210, 190, 172);
-        ctx.fillStyle = '#4a3029';
-        ctx.fillRect(x + 36, groundY - 270, 38, 60);
-        ctx.fillRect(x + 118, groundY - 300, 34, 90);
-        ctx.fillStyle = 'rgba(255, 128, 75, 0.6)';
-        ctx.fillRect(x + 20, groundY - 78, 150, 28);
-        ctx.fillStyle = 'rgba(80, 80, 80, 0.38)';
-        ctx.beginPath();
-        ctx.ellipse(x + 55, groundY - 306, 40, 16, -0.2, 0, Math.PI * 2);
-        ctx.ellipse(x + 135, groundY - 336, 48, 18, -0.1, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#281d1c';
+      const bodies = ['#7a3329', '#57332e', '#8a4e2f', '#46384a'];
+      for (let i = 0; i < 7; i++) {
+        const x = start + 52 + i * 214;
+        const h = 128 + (i % 4) * 28;
+        drawPixelBrickBuilding(x, groundY - h - 40, 160, h, bodies[i % bodies.length], '#ff8759', '#ffd48a', i % 2 ? 'IRON' : 'STEEL');
+        pixelRect(x + 34, groundY - h - 96, 32, 56, '#35251f');
+        pixelRect(x + 104, groundY - h - 116, 28, 76, '#3b2a28');
+        pixelRect(x + 30, groundY - h - 112, 42, 12, 'rgba(112,112,112,0.5)');
       }
-
-      ctx.strokeStyle = '#9e7d63';
-      ctx.lineWidth = 7;
       for (let x = start; x < start + width; x += 80) {
-        ctx.beginPath();
-        ctx.moveTo(x, groundY - 112);
-        ctx.lineTo(x + 80, groundY - 170);
-        ctx.moveTo(x + 80, groundY - 112);
-        ctx.lineTo(x, groundY - 170);
-        ctx.stroke();
+        pixelRect(x, groundY - 138, 52, 8, '#9e7d63');
+        pixelRect(x + 32, groundY - 170, 52, 8, '#9e7d63');
+        pixelRect(x + 34, groundY - 170, 8, 40, '#9e7d63');
       }
-      ctx.fillStyle = '#ff8759';
-      ctx.font = '900 24px Arial';
-      ctx.fillText('IRON CITY', start + 660, groundY - 266);
     }
 
     function drawPensacolaScene(start, width) {
-      ctx.fillStyle = '#f5d18b';
-      ctx.fillRect(start, groundY - 36, width, 62);
-      ctx.fillStyle = '#1f91be';
-      ctx.fillRect(start, groundY + 18, width, 72);
-      ctx.strokeStyle = 'rgba(255,255,255,0.42)';
-      ctx.lineWidth = 4;
-      for (let x = start; x < start + width; x += 92) {
-        ctx.beginPath();
-        ctx.moveTo(x, groundY + 50);
-        ctx.quadraticCurveTo(x + 34, groundY + 30, x + 72, groundY + 50);
-        ctx.stroke();
+      drawPixelOcean(start, width);
+      pixelRect(start, groundY - 68, width, 34, '#f8dc94');
+      const bodies = ['#f0efe4', '#d96c3a', '#f5c36e', '#b7dce7'];
+      for (let i = 0; i < 6; i++) {
+        const x = start + 62 + i * 205;
+        const h = 104 + (i % 3) * 34;
+        drawPixelBrickBuilding(x, groundY - h - 78, 146, h, bodies[i % bodies.length], '#3bb6c6', '#24698f', i % 2 ? 'SURF' : 'PIER');
+        if (i % 2 === 0) drawPixelPalm(x + 126, groundY - h - 104, 0.9);
       }
-
-      for (let i = 0; i < 5; i++) {
-        const x = start + 70 + i * 230;
-        const h = 110 + (i % 3) * 28;
-        ctx.fillStyle = i % 2 ? '#e9f6ff' : '#b9e4ee';
-        drawRoundedRect(x, groundY - h - 76, 136, h, 5);
-        drawWindowGrid(x + 18, groundY - h - 54, 100, h - 30, 3, 3, 'rgba(29, 91, 128, 0.42)');
-      }
-
       const pierX = start + width - 450;
-      ctx.strokeStyle = '#8a5b35';
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(pierX, groundY - 54);
-      ctx.lineTo(pierX + 360, groundY - 54);
-      ctx.stroke();
-      for (let x = pierX + 20; x < pierX + 350; x += 48) {
-        ctx.beginPath();
-        ctx.moveTo(x, groundY - 54);
-        ctx.lineTo(x - 16, groundY + 34);
-        ctx.stroke();
-      }
+      pixelRect(pierX, groundY - 58, 360, 12, '#8a5b35');
+      pixelRect(pierX + 8, groundY - 70, 344, 8, '#b9864c');
+      for (let x = pierX + 20; x < pierX + 350; x += 48) pixelRect(x, groundY - 58, 12, 92, '#8a5b35');
       ctx.fillStyle = '#f6fbff';
-      ctx.font = '900 24px Arial';
+      ctx.font = '900 22px monospace';
       ctx.fillText('PENSACOLA PIER', pierX + 80, groundY - 78);
     }
 
@@ -967,16 +957,15 @@
 
       ctx.save();
       ctx.translate(-cameraX * 0.18, 0);
-      ctx.fillStyle = 'rgba(255, 246, 209, 0.9)';
-      ctx.beginPath();
-      ctx.arc(920, 86, 44, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+      pixelRect(900, 48, 88, 88, 'rgba(255, 246, 184, 0.9)');
       for (let x = -120; x < routeLength * 0.25; x += 240) {
-        ctx.beginPath();
-        ctx.ellipse(x, 150 + Math.sin((x + performance.now() * 0.01) * 0.02) * 12, 74, 18, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + 62, 142, 46, 16, 0, 0, Math.PI * 2);
-        ctx.fill();
+        drawPixelCloud(x, 126 + Math.sin((x + performance.now() * 0.01) * 0.02) * 10, 1.2);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      for (let y = 70; y < 190; y += 12) {
+        for (let x = -40; x < W + 120; x += 12) {
+          if ((x + y) % 36 === 0) ctx.fillRect(x + cameraX * 0.18, y, 4, 4);
+        }
       }
       ctx.restore();
 
@@ -1020,81 +1009,54 @@
       if (ghost) ctx.globalAlpha = 0.45;
       if (player.invincible > 0 && Math.floor(performance.now() / 80) % 2 === 0) ctx.globalAlpha = 0.45;
       const crouch = player.ducking ? 16 : 0;
-      const runBob = Math.sin(performance.now() * 0.018) * (Math.abs(player.vx) > 40 ? 2 : 0);
-      const bodyY = y + 20 + crouch + runBob;
-      ctx.fillStyle = '#ffd45f';
-      ctx.beginPath();
-      ctx.ellipse(x + 22, y + player.h + 8, 48, 9, -0.08, 0, Math.PI * 2);
-      ctx.fill();
+      const runBob = Math.round(Math.sin(performance.now() * 0.018) * (Math.abs(player.vx) > 40 ? 4 : 0));
+      const sx = px(x);
+      const sy = px(y + runBob);
+      const bodyY = sy + 22 + crouch;
+      const skin = '#f09b63';
+      const skinLight = '#ffc083';
+      const hair = '#5b2b1d';
+      const hairHi = '#c36b28';
+      const suit = '#10243d';
+      const suitHi = '#1bb9d0';
+      const shorts = '#e56b2f';
+      const board = '#fff3a8';
+      const outline = '#152035';
 
-      ctx.fillStyle = '#f0c247';
-      ctx.beginPath();
-      ctx.ellipse(x + 22, y + player.h + 2, 48, 10, -0.12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff0a6';
-      ctx.beginPath();
-      ctx.ellipse(x + 24, y + player.h - 1, 27, 4, -0.12, 0, Math.PI * 2);
-      ctx.fill();
+      pixelRect(sx - 22, sy + player.h - 8, 92, 8, outline);
+      pixelRect(sx - 18, sy + player.h - 16, 84, 12, board);
+      pixelRect(sx + 2, sy + player.h - 18, 40, 4, '#ffcf2f');
+      pixelRect(sx + 46, sy + player.h - 16, 18, 4, '#e83f45');
+      pixelRect(sx - 10, sy + player.h - 4, 22, 4, '#5edbe5');
 
-      ctx.strokeStyle = '#111c2e';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x + 12, bodyY + 28);
-      ctx.lineTo(x - 6, y + player.h - 10);
-      ctx.moveTo(x + 32, bodyY + 28);
-      ctx.lineTo(x + 52, y + player.h - 8);
-      ctx.stroke();
+      pixelRect(sx + 10, bodyY + 30, 12, 24 - crouch * 0.5, skin);
+      pixelRect(sx + 28, bodyY + 30, 12, 28 - crouch * 0.5, skin);
+      pixelRect(sx + 2, sy + player.h - 18, 22, 8, outline);
+      pixelRect(sx + 30, sy + player.h - 14, 22, 8, outline);
+      pixelRect(sx + 8, bodyY + 26, 16, 16, shorts);
+      pixelRect(sx + 26, bodyY + 26, 18, 16, '#f28c38');
 
-      ctx.fillStyle = '#734022';
-      drawRoundedRect(x - 16, y + player.h - 16, 22, 12, 5);
-      drawRoundedRect(x + 44, y + player.h - 14, 24, 12, 5);
+      pixelRect(sx + 8, bodyY, 34, player.ducking ? 24 : 38, suit);
+      pixelRect(sx + 12, bodyY + 6, 24, 6, '#1a385a');
+      pixelRect(sx + 18, bodyY + 16, 18, 4, suitHi);
+      pixelRect(sx + 36, bodyY + 2, 8, 24, '#071423');
 
-      ctx.fillStyle = '#1d72d2';
-      drawRoundedRect(x + 5, bodyY, 34, player.ducking ? 24 : 42, 10);
-      ctx.fillStyle = '#e83f45';
-      drawRoundedRect(x + 8, bodyY - 3, 28, 18, 8);
-      ctx.fillStyle = '#ffca3a';
-      ctx.fillRect(x + 14, bodyY - 1, 6, 22);
-      ctx.fillRect(x + 27, bodyY - 1, 6, 22);
+      pixelRect(sx - 8, bodyY + 8, 18, 8, skin);
+      pixelRect(sx - 20, bodyY + 10, 14, 8, skinLight);
+      pixelRect(sx + 40, bodyY + 8, 18, 10, skin);
+      pixelRect(sx + 54, bodyY + 14, 10, 14, skinLight);
+      pixelRect(sx - 24, bodyY + 8, 6, 10, outline);
+      pixelRect(sx + 62, bodyY + 18, 6, 10, outline);
 
-      ctx.strokeStyle = '#f5f7ff';
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(x + 8, bodyY + 12);
-      ctx.lineTo(x - 14, bodyY + 3);
-      ctx.moveTo(x + 36, bodyY + 12);
-      ctx.lineTo(x + 58, bodyY + 4);
-      ctx.stroke();
-      ctx.fillStyle = '#f5f7ff';
-      ctx.beginPath();
-      ctx.arc(x - 17, bodyY + 2, 7, 0, Math.PI * 2);
-      ctx.arc(x + 61, bodyY + 3, 7, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#f2a56b';
-      ctx.beginPath();
-      ctx.arc(x + 22, y + 10 + crouch * 0.45, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#251018';
-      ctx.beginPath();
-      ctx.arc(x + 16, y + 9 + crouch * 0.45, 3, 0, Math.PI * 2);
-      ctx.arc(x + 28, y + 9 + crouch * 0.45, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#251018';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x + 23, y + 15 + crouch * 0.45, 7, 0.15, Math.PI - 0.15);
-      ctx.stroke();
-
-      ctx.fillStyle = '#e83f45';
-      drawRoundedRect(x + 6, y - 8 + crouch * 0.45, 31, 14, 6);
-      ctx.beginPath();
-      ctx.ellipse(x + 30, y - 4 + crouch * 0.45, 15, 5, 0.08, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f6fbff';
-      ctx.font = '900 11px Arial';
-      ctx.fillText('M', x + 17, y + 2 + crouch * 0.45);
+      pixelRect(sx + 8, sy + 2 + crouch * 0.5, 34, 28, skin);
+      pixelRect(sx + 12, sy - 2 + crouch * 0.5, 30, 10, hairHi);
+      pixelRect(sx + 4, sy + 2 + crouch * 0.5, 40, 12, hair);
+      pixelRect(sx + 0, sy + 10 + crouch * 0.5, 14, 12, hair);
+      pixelRect(sx + 36, sy + 8 + crouch * 0.5, 10, 10, hair);
+      pixelRect(sx + 20, sy + 12 + crouch * 0.5, 4, 8, '#101019');
+      pixelRect(sx + 34, sy + 12 + crouch * 0.5, 4, 8, '#101019');
+      pixelRect(sx + 26, sy + 22 + crouch * 0.5, 14, 4, '#9d2e2e');
+      pixelRect(sx + 10, sy + 18 + crouch * 0.5, 6, 6, skinLight);
       ctx.restore();
     }
 
