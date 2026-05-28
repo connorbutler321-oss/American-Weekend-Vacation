@@ -15,3 +15,8 @@ Open `index.html` in a browser.
 - Surf Spray: Enter, F, or Z
 
 High scores are saved permanently in the browser with editable 3-character initials.
+
+## Design Work
+
+Use this branch for visual polish, layout updates, art direction, and gameplay feel changes before merging back to main.
+
