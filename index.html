@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crystal Surfboard Quest</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f6fbff;
+      --muted: #9bb1bc;
+      --panel: rgba(9, 18, 29, 0.86);
+      --line: rgba(255, 255, 255, 0.18);
+      --teal: #34d4c7;
+      --gold: #ffc857;
+      --rose: #ff5a7a;
+      --grass: #7ed957;
+      --sky: #80d8ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #07111f;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    #gameShell {
+      width: min(100vw, 1180px);
+      height: min(100vh, 720px);
+      position: relative;
+      background: #07111f;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 22px 80px rgba(0, 0, 0, 0.42);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #10233a;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background:
+        linear-gradient(rgba(4, 12, 22, 0.1), rgba(4, 12, 22, 0.52)),
+        radial-gradient(circle at 28% 22%, rgba(52, 212, 199, 0.2), transparent 30%),
+        linear-gradient(155deg, #102b42 0%, #0b1428 48%, #24122b 100%);
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .menuGrid {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+      gap: 22px;
+      align-items: end;
+    }
+
+    .titleBlock h1 {
+      margin: 0 0 12px;
+      font-size: clamp(42px, 7vw, 84px);
+      line-height: 0.92;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .titleBlock p,
+    .panel p {
+      color: #d7e8ee;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0 0 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      backdrop-filter: blur(14px);
+    }
+
+    .buttonRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: #13283d;
+      color: var(--ink);
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 7px;
+      font-weight: 700;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--teal);
+      color: #04212a;
+      border-color: rgba(255, 255, 255, 0.42);
+    }
+
+    button:hover,
+    button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.8);
+      outline-offset: 2px;
+    }
+
+    .controlList {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 0;
+      color: #d5e4ea;
+      font-size: 14px;
+    }
+
+    .controlList span {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 14px 14px auto;
+      display: none;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      pointer-events: none;
+      align-items: start;
+    }
+
+    #hud.active {
+      display: grid;
+    }
+
+    .hudPanel {
+      background: rgba(5, 15, 25, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 7px;
+      padding: 10px 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .meter {
+      width: 186px;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .meter > i {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--rose), var(--gold), var(--grass));
+    }
+
+    #message {
+      position: absolute;
+      left: 50%;
+      top: 88px;
+      transform: translateX(-50%);
+      min-width: min(540px, calc(100% - 40px));
+      text-align: center;
+      color: #061520;
+      background: rgba(255, 248, 216, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 800;
+      display: none;
+      pointer-events: none;
+    }
+
+    #scoreList {
+      display: grid;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .scoreRow {
+      display: grid;
+      grid-template-columns: 42px 80px 1fr 92px;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 7px;
+      font-weight: 700;
+    }
+
+    .scoreRow input {
+      width: 58px;
+      height: 34px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--ink);
+      text-transform: uppercase;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    #initialsForm {
+      display: none;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    #initialsForm.active {
+      display: flex;
+    }
+
+    #newInitials {
+      width: 72px;
+      height: 44px;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--ink);
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 3px;
+    }
+
+    @media (max-width: 760px) {
+      #gameShell {
+        height: 100vh;
+        border: 0;
+      }
+
+      .menuGrid {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .screen {
+        padding: 18px;
+        overflow-y: auto;
+        align-items: flex-start;
+      }
+
+      .scoreRow {
+        grid-template-columns: 32px 70px 1fr 76px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="gameShell" aria-label="Crystal Surfboard Quest game">
+    <canvas id="gameCanvas" width="1180" height="720"></canvas>
+    <section id="titleScreen" class="screen active">
+      <div class="menuGrid">
+        <div class="titleBlock">
+          <h1>Crystal Surfboard Quest</h1>
+          <p>
+            Maya "Rip" Rivers is a Nashville board shaper chasing a family legend:
+            a crystal surfboard hidden at Pensacola Pier. City-themed gangs have
+            blocked the route south, so she rides stormwater channels, city streets,
+            and coast-bound waves to reach the beach before sunset.
+          </p>
+          <div class="buttonRow">
+            <button class="primary" id="startButton">Start Game</button>
+            <button id="titleScoresButton">High Scores</button>
+          </div>
+        </div>
+        <aside class="panel">
+          <p><strong>Goal:</strong> defeat gangs, dodge road hazards, gather shells and repair kits, and claim the crystal surfboard treasure at Pensacola Pier.</p>
+          <div class="controlList">
+            <div><span>Move:</span> Arrow keys or WASD</div>
+            <div><span>Jump:</span> Space, W, or Up</div>
+            <div><span>Duck:</span> S or Down</div>
+            <div><span>Dash:</span> Shift or X</div>
+            <div><span>Surf Spray:</span> Enter, F, or Z</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="scoreScreen" class="screen">
+      <div class="panel" style="width:min(620px,100%)">
+        <h2 id="scoreTitle">High Scores</h2>
+        <p id="scoreSummary">Best routes to Pensacola Pier are saved permanently in this browser.</p>
+        <div id="scoreList" aria-live="polite"></div>
+        <form id="initialsForm">
+          <label for="newInitials">Initials</label>
+          <input id="newInitials" maxlength="3" minlength="1" autocomplete="off" value="MAY">
+          <button class="primary" type="submit">Save Score</button>
+        </form>
+        <div class="buttonRow">
+          <button id="playAgainButton">Play</button>
+          <button id="backButton">Title</button>
+          <button id="clearScoresButton">Clear Scores</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="hud">
+      <div class="hudPanel">
+        <div class="stats">
+          <span id="cityName">Nashville</span>
+          <span id="scoreText">Score 0</span>
+          <span id="comboText">Combo x1</span>
+          <span id="sprayText">Spray Ready</span>
+        </div>
+        <div class="meter" aria-label="Health"><i id="healthBar"></i></div>
+      </div>
+      <div class="hudPanel" id="objectiveText">Reach Pensacola Pier</div>
+    </div>
+    <div id="message"></div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const titleScreen = document.getElementById('titleScreen');
+    const scoreScreen = document.getElementById('scoreScreen');
+    const hud = document.getElementById('hud');
+    const message = document.getElementById('message');
+    const scoreList = document.getElementById('scoreList');
+    const scoreTitle = document.getElementById('scoreTitle');
+    const scoreSummary = document.getElementById('scoreSummary');
+    const initialsForm = document.getElementById('initialsForm');
+    const newInitials = document.getElementById('newInitials');
+    const cityName = document.getElementById('cityName');
+    const scoreText = document.getElementById('scoreText');
+    const comboText = document.getElementById('comboText');
+    const sprayText = document.getElementById('sprayText');
+    const healthBar = document.getElementById('healthBar');
+    const objectiveText = document.getElementById('objectiveText');
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const groundY = 564;
+    const routeLength = 6400;
+    const scoreKey = 'crystalSurfboardQuestScores';
+    const keys = new Set();
+    let state = 'title';
+    let cameraX = 0;
+    let lastTime = 0;
+    let pendingScore = null;
+    let messageTimer = 0;
+
+    const cities = [
+      { name: 'Nashville, TN', start: 0, color: '#5ac8fa', band: '#263750', gang: 'Neon Riffs' },
+      { name: 'Huntsville, AL', start: 1600, color: '#c3f73a', band: '#273c2e', gang: 'Rocket Rowdies' },
+      { name: 'Birmingham, AL', start: 3200, color: '#ff7a59', band: '#402c29', gang: 'Iron Block Crew' },
+      { name: 'Downtown Pensacola, FL', start: 4800, color: '#34d4c7', band: '#173c47', gang: 'Pier Breakers' }
+    ];
+
+    const player = {
+      x: 96,
+      y: groundY - 74,
+      w: 40,
+      h: 74,
+      vx: 0,
+      vy: 0,
+      health: 100,
+      score: 0,
+      combo: 1,
+      onGround: false,
+      ducking: false,
+      dashTime: 0,
+      dashCooldown: 0,
+      sprayCooldown: 0,
+      invincible: 0,
+      distanceScore: 0
+    };
+
+    let obstacles = [];
+    let enemies = [];
+    let pickups = [];
+    let sprays = [];
+    let treasure = null;
+
+    function showScreen(next) {
+      state = next;
+      titleScreen.classList.toggle('active', next === 'title');
+      scoreScreen.classList.toggle('active', next === 'scores');
+      hud.classList.toggle('active', next === 'playing');
+      if (next !== 'playing') {
+        renderMenuBackdrop();
+      }
+    }
+
+    function messageFor(text, seconds = 2.4) {
+      message.textContent = text;
+      message.style.display = 'block';
+      messageTimer = seconds;
+    }
+
+    function getScores() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(scoreKey) || '[]');
+        return Array.isArray(saved) ? saved : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveScores(scores) {
+      localStorage.setItem(scoreKey, JSON.stringify(scores.slice(0, 8)));
+    }
+
+    function formatScore(value) {
+      return String(Math.max(0, Math.round(value))).padStart(5, '0');
+    }
+
+    function renderScores() {
+      const scores = getScores().sort((a, b) => b.score - a.score).slice(0, 8);
+      scoreList.innerHTML = '';
+      if (!scores.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No saved runs yet. Maya has a board waxed and ready.';
+        scoreList.appendChild(empty);
+        return;
+      }
+      scores.forEach((entry, index) => {
+        const row = document.createElement('div');
+        row.className = 'scoreRow';
+        const input = document.createElement('input');
+        input.maxLength = 3;
+        input.value = (entry.initials || 'AAA').slice(0, 3).toUpperCase();
+        input.addEventListener('input', () => {
+          const current = getScores().sort((a, b) => b.score - a.score).slice(0, 8);
+          current[index].initials = cleanInitials(input.value);
+          saveScores(current);
+        });
+        row.append(String(index + 1).padStart(2, '0'));
+        row.append(input);
+        row.append(document.createTextNode(entry.result || 'Route Run'));
+        row.append(document.createTextNode(formatScore(entry.score)));
+        scoreList.appendChild(row);
+      });
+    }
+
+    function cleanInitials(value) {
+      return (value || 'AAA').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'AAA';
+    }
+
+    function openScores(options = {}) {
+      pendingScore = options.pendingScore || null;
+      scoreTitle.textContent = options.title || 'High Scores';
+      scoreSummary.textContent = options.summary || 'Best routes to Pensacola Pier are saved permanently in this browser.';
+      initialsForm.classList.toggle('active', Boolean(pendingScore));
+      newInitials.value = 'MAY';
+      renderScores();
+      showScreen('scores');
+    }
+
+    function addScore(initials, score, result) {
+      const scores = getScores();
+      scores.push({
+        initials: cleanInitials(initials),
+        score: Math.max(0, Math.round(score)),
+        result,
+        date: new Date().toISOString()
+      });
+      scores.sort((a, b) => b.score - a.score);
+      saveScores(scores);
+    }
+
+    function resetGame() {
+      Object.assign(player, {
+        x: 96,
+        y: groundY - 74,
+        w: 40,
+        h: 74,
+        vx: 0,
+        vy: 0,
+        health: 100,
+        score: 0,
+        combo: 1,
+        onGround: false,
+        ducking: false,
+        dashTime: 0,
+        dashCooldown: 0,
+        sprayCooldown: 0,
+        invincible: 0,
+        distanceScore: 0
+      });
+      cameraX = 0;
+      sprays = [];
+      obstacles = [
+        block(420, 42, 46, 'traffic cone'),
+        block(790, 72, 34, 'speaker stack'),
+        lowBeam(1120, 'low neon sign'),
+        block(1430, 58, 56, 'tour bus barricade'),
+        block(1830, 50, 44, 'rocket crate'),
+        lowBeam(2150, 'lab gate'),
+        block(2470, 76, 38, 'moon rover tire'),
+        block(3030, 52, 66, 'fuel barrel'),
+        block(3480, 82, 44, 'steel beam'),
+        block(3840, 48, 78, 'iron furnace'),
+        lowBeam(4160, 'rail bridge'),
+        block(4550, 70, 52, 'pothole barrier'),
+        block(5020, 44, 66, 'food truck sign'),
+        lowBeam(5360, 'balcony banner'),
+        block(5660, 82, 40, 'pier crate'),
+        block(6020, 58, 74, 'storm drain')
+      ];
+      enemies = [
+        enemy(620, 'Neon Riffs', '#ff5a7a'),
+        enemy(1280, 'Neon Riffs', '#ff5a7a'),
+        enemy(1980, 'Rocket Rowdies', '#c3f73a'),
+        enemy(2700, 'Rocket Rowdies', '#c3f73a'),
+        enemy(3600, 'Iron Block Crew', '#ff9d4d'),
+        enemy(4380, 'Iron Block Crew', '#ff9d4d'),
+        enemy(5200, 'Pier Breakers', '#34d4c7'),
+        enemy(5860, 'Pier Breakers', '#34d4c7')
+      ];
+      pickups = [
+        pickup(350, 'shell'), pickup(930, 'repair'), pickup(1500, 'shell'),
+        pickup(1760, 'shell'), pickup(2300, 'repair'), pickup(2920, 'shell'),
+        pickup(3350, 'shell'), pickup(4040, 'repair'), pickup(4660, 'shell'),
+        pickup(5120, 'repair'), pickup(5520, 'shell'), pickup(6120, 'shell')
+      ];
+      treasure = { x: routeLength - 180, y: groundY - 94, w: 76, h: 88, taken: false };
+      messageFor('Stage 1: Nashville. Break through the Neon Riffs.', 2.5);
+      showScreen('playing');
+    }
+
+    function block(x, w, h, label) {
+      return { x, y: groundY - h, w, h, label, type: 'block', hit: false };
+    }
+
+    function lowBeam(x, label) {
+      return { x, y: groundY - 88, w: 116, h: 24, label, type: 'beam', hit: false };
+    }
+
+    function enemy(x, label, color) {
+      return { x, y: groundY - 62, w: 42, h: 62, label, color, dir: -1, speed: 42, health: 2, hit: false };
+    }
+
+    function pickup(x, type) {
+      return { x, y: groundY - (type === 'repair' ? 118 : 92), w: 30, h: 30, type, taken: false, bob: Math.random() * 10 };
+    }
+
+    function currentCity() {
+      return cities.reduce((found, city) => player.x >= city.start ? city : found, cities[0]);
+    }
+
+    function rectsTouch(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function damage(amount, reason) {
+      if (player.invincible > 0) return;
+      player.health = Math.max(0, player.health - amount);
+      player.score = Math.max(0, player.score - amount * 6);
+      player.combo = 1;
+      player.invincible = 1.1;
+      messageFor(reason, 1.4);
+      if (player.health <= 0) {
+        endGame(false, 'Maya wiped out before reaching Pensacola Pier.');
+      }
+    }
+
+    function reward(points, reason) {
+      player.score += Math.round(points * player.combo);
+      player.combo = Math.min(5, player.combo + 0.25);
+      if (reason) messageFor(reason, 1.2);
+    }
+
+    function fireSpray() {
+      if (player.sprayCooldown > 0) return;
+      sprays.push({
+        x: player.x + player.w,
+        y: player.y + (player.ducking ? 24 : 32),
+        w: 28,
+        h: 12,
+        vx: 560,
+        life: 0.75
+      });
+      player.sprayCooldown = 0.65;
+    }
+
+    function update(dt) {
+      if (state !== 'playing') return;
+      const left = keys.has('arrowleft') || keys.has('a');
+      const right = keys.has('arrowright') || keys.has('d');
+      const jump = keys.has(' ') || keys.has('arrowup') || keys.has('w');
+      const duck = keys.has('arrowdown') || keys.has('s');
+      const dash = keys.has('shift') || keys.has('x');
+      const spray = keys.has('enter') || keys.has('f') || keys.has('z');
+
+      player.ducking = duck && player.onGround;
+      player.h = player.ducking ? 44 : 74;
+      if (player.ducking) player.y = groundY - player.h;
+
+      const accel = player.onGround ? 1200 : 650;
+      const maxSpeed = player.dashTime > 0 ? 430 : 280;
+      if (left) player.vx -= accel * dt;
+      if (right) player.vx += accel * dt;
+      if (!left && !right) player.vx *= Math.pow(0.015, dt);
+      player.vx = Math.max(-180, Math.min(maxSpeed, player.vx));
+
+      if (jump && player.onGround && !player.ducking) {
+        player.vy = -620;
+        player.onGround = false;
+      }
+
+      if (dash && player.dashCooldown <= 0 && !player.ducking) {
+        player.dashTime = 0.22;
+        player.dashCooldown = 1.25;
+        player.vx = 450;
+      }
+
+      if (spray) fireSpray();
+
+      player.vy += 1500 * dt;
+      player.x += player.vx * dt;
+      player.y += player.vy * dt;
+
+      if (player.y + player.h >= groundY) {
+        player.y = groundY - player.h;
+        player.vy = 0;
+        player.onGround = true;
+      }
+      player.x = Math.max(30, Math.min(routeLength - 90, player.x));
+
+      player.dashTime = Math.max(0, player.dashTime - dt);
+      player.dashCooldown = Math.max(0, player.dashCooldown - dt);
+      player.sprayCooldown = Math.max(0, player.sprayCooldown - dt);
+      player.invincible = Math.max(0, player.invincible - dt);
+
+      const nextDistanceScore = Math.floor(player.x / 80) * 5;
+      if (nextDistanceScore > player.distanceScore) {
+        player.score += nextDistanceScore - player.distanceScore;
+        player.distanceScore = nextDistanceScore;
+      }
+
+      sprays.forEach(s => {
+        s.x += s.vx * dt;
+        s.life -= dt;
+      });
+      sprays = sprays.filter(s => s.life > 0);
+
+      enemies.forEach(e => {
+        if (e.health <= 0) return;
+        const targetDir = player.x < e.x ? -1 : 1;
+        e.x += targetDir * e.speed * dt;
+        e.x = Math.max(e.x - 70, Math.min(e.x + 70, e.x));
+        sprays.forEach(s => {
+          if (rectsTouch(s, e)) {
+            s.life = 0;
+            e.health -= 1;
+            if (e.health <= 0) {
+              reward(220, e.label + ' defeated.');
+            }
+          }
+        });
+        if (rectsTouch(player, e)) {
+          if (player.dashTime > 0 || player.vy > 380) {
+            e.health = 0;
+            reward(260, e.label + ' wiped out.');
+            player.vy = -320;
+          } else {
+            damage(16, 'Caught by the ' + e.label + '.');
+          }
+        }
+      });
+
+      obstacles.forEach(o => {
+        if (rectsTouch(player, o)) {
+          const avoidedBeam = o.type === 'beam' && player.ducking;
+          if (avoidedBeam) {
+            if (!o.hit) reward(90, 'Clean duck under ' + o.label + '.');
+            o.hit = true;
+            return;
+          }
+          damage(o.type === 'beam' ? 14 : 12, 'Collision: ' + o.label + '.');
+          if (player.x < o.x) player.x -= 28;
+          player.vx *= -0.25;
+        } else if (!o.hit && player.x > o.x + o.w + 12) {
+          o.hit = true;
+          reward(70, 'Obstacle cleared.');
+        }
+      });
+
+      pickups.forEach(p => {
+        p.bob += dt * 7;
+        if (!p.taken && rectsTouch(player, p)) {
+          p.taken = true;
+          if (p.type === 'repair') {
+            player.health = Math.min(100, player.health + 18);
+            reward(120, 'Repair kit collected. Health restored.');
+          } else {
+            reward(150, 'Crystal shell collected.');
+          }
+        }
+      });
+
+      if (treasure && !treasure.taken && rectsTouch(player, treasure)) {
+        treasure.taken = true;
+        reward(1200, 'Crystal surfboard treasure claimed.');
+        endGame(true, 'Maya reached Pensacola Pier and claimed the legendary prize.');
+      }
+
+      const city = currentCity();
+      cityName.textContent = city.name;
+      scoreText.textContent = 'Score ' + formatScore(player.score);
+      comboText.textContent = 'Combo x' + player.combo.toFixed(1);
+      sprayText.textContent = player.sprayCooldown <= 0 ? 'Spray Ready' : 'Spray ' + player.sprayCooldown.toFixed(1) + 's';
+      healthBar.style.width = player.health + '%';
+      objectiveText.textContent = player.x < 4800 ? 'Travel south: ' + city.gang + ' territory' : 'Final push: reach Pensacola Pier';
+
+      cameraX = Math.max(0, Math.min(routeLength - W, player.x - W * 0.36));
+      if (messageTimer > 0) {
+        messageTimer -= dt;
+        if (messageTimer <= 0) message.style.display = 'none';
+      }
+    }
+
+    function endGame(won, text) {
+      state = 'ending';
+      setTimeout(() => {
+        openScores({
+          title: won ? 'Treasure Claimed' : 'Route Ended',
+          summary: text + ' Final score: ' + formatScore(player.score),
+          pendingScore: { score: player.score, result: won ? 'Crystal Board' : 'Route Run' }
+        });
+      }, 500);
+    }
+
+    function drawRoundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function renderMenuBackdrop() {
+      ctx.clearRect(0, 0, W, H);
+      drawWorld(0.016);
+      drawTreasure(W - 230, groundY - 94, true);
+      drawPlayer(160, groundY - 74, false);
+    }
+
+    function drawWorld(dt) {
+      const city = currentCity();
+      const gradient = ctx.createLinearGradient(0, 0, 0, H);
+      gradient.addColorStop(0, city.color);
+      gradient.addColorStop(0.48, '#183350');
+      gradient.addColorStop(1, '#06111e');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.translate(-cameraX * 0.18, 0);
+      for (let i = -2; i < 18; i++) {
+        const x = i * 260;
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.16)' : 'rgba(4,16,31,0.28)';
+        ctx.fillRect(x, 260 - (i % 3) * 42, 140, 240);
+        ctx.fillStyle = 'rgba(255, 200, 87, 0.55)';
+        for (let y = 286; y < 430; y += 34) {
+          ctx.fillRect(x + 22, y, 16, 12);
+          ctx.fillRect(x + 74, y + 8, 16, 12);
+        }
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+      cities.forEach((c, index) => {
+        const next = cities[index + 1]?.start || routeLength;
+        ctx.fillStyle = c.band;
+        ctx.fillRect(c.start, groundY, next - c.start, H - groundY);
+        ctx.fillStyle = c.color;
+        ctx.globalAlpha = 0.22;
+        ctx.fillRect(c.start, groundY - 12, next - c.start, 12);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#f6fbff';
+        ctx.font = '700 28px Arial';
+        ctx.fillText(c.name, c.start + 36, 132);
+        ctx.font = '700 15px Arial';
+        ctx.fillText(c.gang + ' territory', c.start + 40, 158);
+      });
+
+      ctx.fillStyle = '#1f6f8b';
+      ctx.fillRect(0, groundY + 18, routeLength, 52);
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 3;
+      for (let x = 0; x < routeLength; x += 90) {
+        ctx.beginPath();
+        ctx.moveTo(x, groundY + 42 + Math.sin((x + performance.now() * 0.05) * 0.04) * 4);
+        ctx.lineTo(x + 48, groundY + 42);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPlayer(x, y, ghost) {
+      ctx.save();
+      if (ghost) ctx.globalAlpha = 0.45;
+      if (player.invincible > 0 && Math.floor(performance.now() / 80) % 2 === 0) ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#ffc857';
+      ctx.beginPath();
+      ctx.ellipse(x + 22, y + player.h + 7, 44, 8, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#34d4c7';
+      drawRoundedRect(x + 7, y + 18, 26, player.ducking ? 26 : 42, 8);
+      ctx.fillStyle = '#f2a56b';
+      ctx.beginPath();
+      ctx.arc(x + 22, y + 10, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#082033';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x + 10, y + 42);
+      ctx.lineTo(x - 2, y + player.h - 2);
+      ctx.moveTo(x + 32, y + 42);
+      ctx.lineTo(x + 48, y + player.h - 1);
+      ctx.stroke();
+      ctx.fillStyle = '#ff5a7a';
+      ctx.fillRect(x + 12, y - 5, 20, 8);
+      ctx.restore();
+    }
+
+    function drawEnemy(e) {
+      if (e.health <= 0) return;
+      const x = e.x - cameraX;
+      ctx.fillStyle = e.color;
+      drawRoundedRect(x, e.y, e.w, e.h, 7);
+      ctx.fillStyle = '#07111f';
+      ctx.fillRect(x + 9, e.y + 16, 7, 7);
+      ctx.fillRect(x + 27, e.y + 16, 7, 7);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = '700 10px Arial';
+      ctx.fillText(e.label.split(' ')[0], x - 8, e.y - 8);
+    }
+
+    function drawObstacle(o) {
+      const x = o.x - cameraX;
+      ctx.fillStyle = o.type === 'beam' ? '#ffc857' : '#ff5a7a';
+      drawRoundedRect(x, o.y, o.w, o.h, 5);
+      ctx.fillStyle = 'rgba(5, 15, 25, 0.55)';
+      ctx.fillRect(x + 8, o.y + 8, Math.max(8, o.w - 16), 8);
+    }
+
+    function drawPickup(p) {
+      if (p.taken) return;
+      const y = p.y + Math.sin(p.bob) * 5;
+      const x = p.x - cameraX;
+      ctx.fillStyle = p.type === 'repair' ? '#7ed957' : '#f6fbff';
+      ctx.beginPath();
+      ctx.arc(x + 15, y + 15, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = p.type === 'repair' ? '#10233a' : '#34d4c7';
+      if (p.type === 'repair') {
+        ctx.fillRect(x + 12, y + 6, 6, 18);
+        ctx.fillRect(x + 6, y + 12, 18, 6);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(x + 15, y + 5);
+        ctx.lineTo(x + 26, y + 15);
+        ctx.lineTo(x + 15, y + 27);
+        ctx.lineTo(x + 4, y + 15);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawTreasure(x, y, fixed = false) {
+      const tx = fixed ? x : x - cameraX;
+      ctx.fillStyle = '#f6fbff';
+      ctx.beginPath();
+      ctx.ellipse(tx + 38, y + 76, 44, 10, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#34d4c7';
+      ctx.beginPath();
+      ctx.moveTo(tx + 40, y);
+      ctx.lineTo(tx + 72, y + 72);
+      ctx.lineTo(tx + 4, y + 72);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    function render(dt) {
+      if (state !== 'playing' && state !== 'ending') return;
+      drawWorld(dt);
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      for (let x = 0; x < routeLength; x += 130) {
+        ctx.fillRect(x, groundY - 1, 70, 3);
+      }
+      ctx.restore();
+
+      obstacles.forEach(drawObstacle);
+      pickups.forEach(drawPickup);
+      enemies.forEach(drawEnemy);
+      sprays.forEach(s => {
+        ctx.fillStyle = '#dffbff';
+        ctx.beginPath();
+        ctx.ellipse(s.x - cameraX + 14, s.y + 6, 18, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      if (treasure && !treasure.taken) drawTreasure(treasure.x, treasure.y);
+      drawPlayer(player.x - cameraX, player.y, false);
+    }
+
+    function loop(time) {
+      const dt = Math.min(0.033, (time - lastTime) / 1000 || 0.016);
+      lastTime = time;
+      update(dt);
+      render(dt);
+      requestAnimationFrame(loop);
+    }
+
+    document.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', 'shift'].includes(key)) {
+        event.preventDefault();
+      }
+      keys.add(key);
+    });
+
+    document.addEventListener('keyup', event => {
+      keys.delete(event.key.toLowerCase());
+    });
+
+    document.getElementById('startButton').addEventListener('click', resetGame);
+    document.getElementById('playAgainButton').addEventListener('click', resetGame);
+    document.getElementById('titleScoresButton').addEventListener('click', () => openScores());
+    document.getElementById('backButton').addEventListener('click', () => showScreen('title'));
+    document.getElementById('clearScoresButton').addEventListener('click', () => {
+      saveScores([]);
+      renderScores();
+    });
+
+    initialsForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (!pendingScore) return;
+      addScore(newInitials.value, pendingScore.score, pendingScore.result);
+      pendingScore = null;
+      initialsForm.classList.remove('active');
+      scoreTitle.textContent = 'High Scores';
+      scoreSummary.textContent = 'Saved permanently in this browser. Initials are editable below.';
+      renderScores();
+    });
+
+    renderMenuBackdrop();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

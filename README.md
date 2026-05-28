@@ -1,2 +1,17 @@
 # American Weekend Vacation
-2-D side scrolling game/adventure game
+
+A self-contained 2D browser game about Maya "Rip" Rivers traveling from Nashville through Huntsville and Birmingham to Pensacola Pier to claim the crystal surfboard treasure.
+
+## Play
+
+Open `index.html` in a browser.
+
+## Controls
+
+- Move: Arrow keys or WASD
+- Jump: Space, W, or Up
+- Duck: S or Down
+- Dash: Shift or X
+- Surf Spray: Enter, F, or Z
+
+High scores are saved permanently in the browser with editable 3-character initials.
