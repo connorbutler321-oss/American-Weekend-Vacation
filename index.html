@@ -316,6 +316,7 @@
             <div><span>Duck:</span> S or Down</div>
             <div><span>Dash:</span> Shift or X</div>
             <div><span>Surf Spray:</span> Enter, F, or Z</div>
+            <div><span>Starfish Throw:</span> Left Mouse Click (5s cooldown)</div>
           </div>
         </aside>
       </div>
@@ -346,6 +347,7 @@
           <span id="scoreText">Score 0</span>
           <span id="comboText">Combo x1</span>
           <span id="sprayText">Spray Ready</span>
+          <span id="starfishText">⭐ Starfish Ready</span>
         </div>
         <div class="meter" aria-label="Health"><i id="healthBar"></i></div>
       </div>
@@ -371,6 +373,7 @@
     const scoreText = document.getElementById('scoreText');
     const comboText = document.getElementById('comboText');
     const sprayText = document.getElementById('sprayText');
+    const starfishText = document.getElementById('starfishText');
     const healthBar = document.getElementById('healthBar');
     const objectiveText = document.getElementById('objectiveText');
 
@@ -408,6 +411,7 @@
       dashTime: 0,
       dashCooldown: 0,
       sprayCooldown: 0,
+      starfishCooldown: 0,
       invincible: 0,
       distanceScore: 0
     };
@@ -416,6 +420,8 @@
     let enemies = [];
     let pickups = [];
     let sprays = [];
+    let starfishes = [];
+    let enemyProjectiles = [];
     let treasure = null;
 
     function showScreen(next) {
@@ -521,11 +527,14 @@
         dashTime: 0,
         dashCooldown: 0,
         sprayCooldown: 0,
+        starfishCooldown: 0,
         invincible: 0,
         distanceScore: 0
       });
       cameraX = 0;
       sprays = [];
+      starfishes = [];
+      enemyProjectiles = [];
       obstacles = [
         block(420, 42, 46, 'traffic cone'),
         block(790, 72, 34, 'speaker stack'),
@@ -574,7 +583,7 @@
     }
 
     function enemy(x, label, color) {
-      return { x, y: groundY - 62, w: 42, h: 62, label, color, dir: -1, speed: 42, health: 2, hit: false };
+      return { x, y: groundY - 62, w: 42, h: 62, label, color, dir: -1, speed: 42, health: 2, hit: false, shootTimer: 1.5 + Math.random() * 1.5 };
     }
 
     function pickup(x, type) {
@@ -618,6 +627,25 @@
         life: 0.75
       });
       player.sprayCooldown = 0.65;
+    }
+
+    function fireStarfish(targetX, targetY) {
+      if (player.starfishCooldown > 0 || state !== 'playing') return;
+      const cx = player.x - cameraX + player.w / 2;
+      const cy = player.y + player.h / 2;
+      const dx = targetX - cx;
+      const dy = targetY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const speed = 680;
+      starfishes.push({
+        x: player.x + player.w / 2,
+        y: player.y + player.h / 2,
+        vx: (dx / dist) * speed,
+        vy: (dy / dist) * speed,
+        angle: 0,
+        life: 1.6
+      });
+      player.starfishCooldown = 5;
     }
 
     function update(dt) {
@@ -667,6 +695,7 @@
       player.dashTime = Math.max(0, player.dashTime - dt);
       player.dashCooldown = Math.max(0, player.dashCooldown - dt);
       player.sprayCooldown = Math.max(0, player.sprayCooldown - dt);
+      player.starfishCooldown = Math.max(0, player.starfishCooldown - dt);
       player.invincible = Math.max(0, player.invincible - dt);
 
       const nextDistanceScore = Math.floor(player.x / 80) * 5;
@@ -681,10 +710,56 @@
       });
       sprays = sprays.filter(s => s.life > 0);
 
+      // Starfish: move, spin, hit enemies
+      starfishes.forEach(sf => {
+        sf.x += sf.vx * dt;
+        sf.y += sf.vy * dt;
+        sf.angle += 12 * dt;
+        sf.life -= dt;
+        const sfRect = { x: sf.x - 14, y: sf.y - 14, w: 28, h: 28 };
+        enemies.forEach(e => {
+          if (e.health <= 0) return;
+          if (rectsTouch(sfRect, e)) {
+            e.health = 0;
+            sf.life = 0;
+            reward(300, e.label + ' taken out by starfish!');
+          }
+        });
+      });
+      starfishes = starfishes.filter(sf => sf.life > 0);
+
+      // Enemy projectiles: hit player
+      enemyProjectiles.forEach(p => {
+        p.x += p.vx * dt;
+        p.life -= dt;
+        const pRect = { x: p.x - 7, y: p.y - 7, w: 14, h: 14 };
+        if (rectsTouch(pRect, player)) {
+          p.life = 0;
+          damage(14, 'Hit by enemy projectile!');
+        }
+      });
+      enemyProjectiles = enemyProjectiles.filter(p => p.life > 0);
+
       enemies.forEach(e => {
         if (e.health <= 0) return;
         const targetDir = player.x < e.x ? -1 : 1;
         e.x += targetDir * e.speed * dt;
+
+        // Fire projectile every 3 seconds if on-screen
+        e.shootTimer -= dt;
+        if (e.shootTimer <= 0) {
+          e.shootTimer = 3;
+          const onScreen = e.x > cameraX - 100 && e.x < cameraX + W + 100;
+          if (onScreen) {
+            const dir = player.x < e.x ? -1 : 1;
+            enemyProjectiles.push({
+              x: e.x + e.w / 2,
+              y: e.y + e.h / 2,
+              vx: dir * 340,
+              life: 2.5
+            });
+          }
+        }
         e.x = Math.max(e.x - 70, Math.min(e.x + 70, e.x));
         sprays.forEach(s => {
           if (rectsTouch(s, e)) {
@@ -747,6 +822,7 @@
       scoreText.textContent = 'Score ' + formatScore(player.score);
       comboText.textContent = 'Combo x' + player.combo.toFixed(1);
       sprayText.textContent = player.sprayCooldown <= 0 ? 'Spray Ready' : 'Spray ' + player.sprayCooldown.toFixed(1) + 's';
+      starfishText.textContent = player.starfishCooldown <= 0 ? '⭐ Starfish Ready' : '⭐ ' + player.starfishCooldown.toFixed(1) + 's';
       healthBar.style.width = player.health + '%';
       objectiveText.textContent = player.x < 4800 ? 'Travel south: ' + city.gang + ' territory' : 'Final push: reach Pensacola Pier';
 
@@ -1143,6 +1219,42 @@
         ctx.ellipse(s.x - cameraX + 14, s.y + 6, 18, 7, 0, 0, Math.PI * 2);
         ctx.fill();
       });
+
+      // Draw spinning starfishes
+      starfishes.forEach(sf => {
+        const sx = sf.x - cameraX;
+        const sy = sf.y;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(sf.angle);
+        ctx.fillStyle = '#ff9d4d';
+        for (let i = 0; i < 5; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI * 2) / 5);
+          ctx.beginPath();
+          ctx.ellipse(0, -13, 4, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = '#ffc857';
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Draw enemy projectiles
+      enemyProjectiles.forEach(p => {
+        const px = p.x - cameraX;
+        ctx.fillStyle = '#ff5a7a';
+        ctx.beginPath();
+        ctx.arc(px, p.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,90,122,0.35)';
+        ctx.beginPath();
+        ctx.arc(px, p.y, 13, 0, Math.PI * 2);
+        ctx.fill();
+      });
       if (treasure && !treasure.taken) drawTreasure(treasure.x, treasure.y);
       drawPlayer(player.x - cameraX, player.y, false);
     }
@@ -1165,6 +1277,16 @@
 
     document.addEventListener('keyup', event => {
       keys.delete(event.key.toLowerCase());
+    });
+
+    canvas.addEventListener('click', event => {
+      if (state !== 'playing') return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (event.clientX - rect.left) * scaleX;
+      const my = (event.clientY - rect.top) * scaleY;
+      fireStarfish(mx, my);
     });
 
     document.getElementById('startButton').addEventListener('click', resetGame);
